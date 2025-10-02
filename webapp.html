@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style> /* same as before */ </style>
+</head>
+<body>
+    <h1 id="title">Roulette</h1>
+    <!-- ... same as before, but with texts -->
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = urlParams.get('lang') || 'en';
+        const texts = {
+            en: { title: 'Roulette CS:GO', terms: 'Terms (read)', privacy: 'Privacy (read)', play: 'PLAY' },
+            ru: { title: 'Рулетка CS:GO', terms: 'Условия (прочитать)', privacy: 'Политика (прочитать)', play: 'ИГРАТЬ' }
+        };
+        document.getElementById('title').innerText = texts[lang].title;
+        // Update labels, button text similarly
+        // ... rest same, with randomItem using en items (translate if needed)
+    </script>
+</body>
+</html>
