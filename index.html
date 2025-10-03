@@ -1,75 +1,20 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Рулетка</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>DarkSlot Roulette</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #ffd700, #000000);
-            color: #ffd700;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             height: 100vh;
-            text-align: center;
-        }
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-        .agreement-box {
-            background: #1a1a1a;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
-            max-width: 300px;
-        }
-        .agreement-text {
-            color: #ffd700;
-            text-decoration: underline;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-        .agreement-text:hover {
+            margin: 0;
+            background: linear-gradient(135deg, #1e1e2f, #3b3b5b);
             color: #fff;
-        }
-        #confirm-button {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #ffd700, #d4af37);
-            border: none;
-            border-radius: 8px;
-            color: #000;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-        #confirm-button:disabled {
-            background: #555;
-            cursor: not-allowed;
-        }
-        .container {
-            background: rgba(26, 26, 26, 0.6);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
-            max-width: 400px;
-            width: 90%;
-        }
-        h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
         }
         #roulette {
             overflow: hidden;
@@ -93,180 +38,149 @@
             background-position: center;
             margin: 10px;
             background-color: transparent;
-            border: none; /* Убрана обводка */
+            border: none;
             outline: none;
         }
-        button {
-            padding: 12px 24px;
-            font-size: 18px;
-            background: linear-gradient(135deg, #ffd700, #d4af37);
-            border: none;
-            border-radius: 8px;
-            color: #000;
-            cursor: pointer;
-            transition: background 0.3s;
-            margin: 5px;
-        }
-        button:disabled {
-            background: #555;
-            cursor: not-allowed;
-        }
-        button:hover:not(:disabled) {
-            background: linear-gradient(135deg, #d4af37, #ffd700);
-        }
-        #result {
-            font-size: 20px;
-            margin-top: 20px;
-        }
         #large-item {
+            display: none;
             width: 200px;
             height: 200px;
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
-            margin: 20px auto;
-            box-shadow: 0 0 30px #ffd700; /* Свечение */
-            border-radius: 50%;
+            background-color: transparent;
+            border-radius: 10px;
+            box-shadow: 0 0 30px #ffd700;
+            margin: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background-color: #ffd700;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #1e1e2f;
+        }
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        #result {
+            font-size: 18px;
+            margin: 10px 0;
+            text-align: center;
         }
         #timer {
             font-size: 16px;
-            margin-top: 10px;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-    <div class="overlay" id="agreement-overlay">
-        <div class="agreement-box">
-            <div style="display: flex; align-items: center; margin: 10px 0;">
-                <input type="checkbox" id="terms-check">
-                <span class="agreement-text" id="terms-text">Условия пользования</span>
-            </div>
-            <div style="display: flex; align-items: center; margin: 10px 0;">
-                <input type="checkbox" id="privacy-check">
-                <span class="agreement-text" id="privacy-text">Политика конфиденциальности</span>
-            </div>
-            <button id="confirm-button" disabled>Подтвердить</button>
-        </div>
-    </div>
-    <div class="container" id="roulette-container" style="display: none;">
-        <h1>Рулетка</h1>
-        <div id="roulette"></div>
-        <div id="large-item" style="display: none;"></div>
-        <button id="play-free" style="display: none;">ПРОКРУТИТЬ БЕСПЛАТНО</button>
-        <button id="play-paid">ПРОКРУТИТЬ ЗА 25 ЗВЁЗД</button>
-        <div id="timer"></div>
-        <div id="result"></div>
-    </div>
+    <div id="roulette"></div>
+    <div id="large-item"></div>
+    <div id="result"></div>
+    <div id="timer"></div>
+    <button id="play-free">Бесплатный спин</button>
+    <button id="play-paid">Платный спин (25 звёзд)</button>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        const rouletteDiv = document.getElementById('roulette');
+        const largeItem = document.getElementById('large-item');
+        const resultDiv = document.getElementById('result');
+        const timerDiv = document.getElementById('timer');
+        const playFree = document.getElementById('play-free');
+        const playPaid = document.getElementById('play-paid');
+
+        let freeSpinAvailable = false;
+
         const urlParams = new URLSearchParams(window.location.search);
         const lang = urlParams.get('lang') || 'ru';
+        const agree = urlParams.get('agree') === 'true';
+
         const texts = {
             ru: {
-                title: 'Рулетка',
-                terms: 'Условия пользования',
-                privacy: 'Политика конфиденциальности',
-                confirm: 'Подтвердить',
-                play: 'ПРОКРУТИТЬ',
-                sell: 'ПРОДАТЬ',
-                result: 'Выпало: {item} ({prize} звезд)',
-                nothing: 'пустышка',
-                bear: 'мишка',
-                rose: 'роза',
-                rocket: 'ракета',
-                diamond: 'алмаз',
-                free: 'БЕСПЛАТНО',
-                paid: 'ЗА 25 ЗВЁЗД',
-                timer: 'До фриспина: {time}'
+                title: "Подтверждение",
+                paid: "Прокрутить рулетку за 25 звёзд?",
+                confirm: "Подтвердить",
+                result: "Вы выиграли {item}! Приз: {prize} звёзд",
+                sell: "ПРОДАТЬ",
+                timer: "Следующий спин через: {time}",
+                nothing: "Ничего",
+                bear: "Медведь",
+                rose: "Роза",
+                rocket: "Ракета",
+                diamond: "Алмаз"
             },
             en: {
-                title: 'Roulette',
-                terms: 'Terms of Use',
-                privacy: 'Privacy Policy',
-                confirm: 'Confirm',
-                play: 'SPIN',
-                sell: 'SELL',
-                result: 'Result: {item} ({prize} stars)',
-                nothing: 'nothing',
-                bear: 'bear',
-                rose: 'rose',
-                rocket: 'rocket',
-                diamond: 'diamond',
-                free: 'FREE',
-                paid: 'FOR 25 STARS',
-                timer: 'Next free spin in: {time}'
+                title: "Confirmation",
+                paid: "Spin the roulette for 25 stars?",
+                confirm: "Confirm",
+                result: "You won {item}! Prize: {prize} stars",
+                sell: "SELL",
+                timer: "Next spin in: {time}",
+                nothing: "Nothing",
+                bear: "Bear",
+                rose: "Rose",
+                rocket: "Rocket",
+                diamond: "Diamond"
             }
         }[lang];
 
-        document.querySelector('h1').textContent = texts.title;
-        document.getElementById('terms-text').textContent = texts.terms;
-        document.getElementById('privacy-text').textContent = texts.privacy;
-        document.getElementById('confirm-button').textContent = texts.confirm;
-        document.getElementById('play-free').textContent = `${texts.play} ${texts.free}`;
-        document.getElementById('play-paid').textContent = `${texts.play} ${texts.paid}`;
-
-        const termsCheck = document.getElementById('terms-check');
-        const privacyCheck = document.getElementById('privacy-check');
-        const confirmButton = document.getElementById('confirm-button');
-        const agreementOverlay = document.getElementById('agreement-overlay');
-        const rouletteContainer = document.getElementById('roulette-container');
-        const playFree = document.getElementById('play-free');
-        const playPaid = document.getElementById('play-paid');
-        const resultDiv = document.getElementById('result');
-        const largeItem = document.getElementById('large-item');
-        const rouletteDiv = document.getElementById('roulette');
-        const timerDiv = document.getElementById('timer');
-
-        function checkAgreement() {
-            console.log('checkAgreement called', { terms: termsCheck.checked, privacy: privacyCheck.checked });
-            confirmButton.disabled = !(termsCheck.checked && privacyCheck.checked);
-            console.log('Confirm button disabled:', confirmButton.disabled);
-        }
-
-        termsCheck.addEventListener('change', () => {
-            console.log('Terms checkbox changed:', termsCheck.checked);
-            checkAgreement();
-        });
-        privacyCheck.addEventListener('change', () => {
-            console.log('Privacy checkbox changed:', privacyCheck.checked);
-            checkAgreement();
-        });
-
-        document.getElementById('terms-text').addEventListener('click', e => {
-            e.preventDefault();
-            console.log('Opening terms of use');
-            tg.openTelegramLink('tg://resolve?domain=@DarkSlot1_bot&start=termsofuse');
-        });
-        document.getElementById('privacy-text').addEventListener('click', e => {
-            e.preventDefault();
-            console.log('Opening privacy policy');
-            tg.openTelegramLink('tg://resolve?domain=@DarkSlot1_bot&start=privacypolicy');
-        });
-
-        confirmButton.addEventListener('click', () => {
-            console.log('Confirm clicked');
-            agreementOverlay.style.display = 'none';
-            rouletteContainer.style.display = 'block';
-            initPreview();
-            tg.sendData(JSON.stringify({ action: 'agree' }));
-        });
-
         function initPreview() {
-            console.log('Initializing preview');
+            console.log('Инициализация превью рулетки');
             const items = ['nothing', 'bear', 'rose', 'rocket', 'diamond'];
             let htmlItems = [];
             for (let i = 0; i < 20; i++) {
                 const item = items[Math.floor(Math.random() * items.length)];
-                console.log(`Adding item: images/${item}.png`);
+                console.log(`Добавление элемента: images/${item}.png`);
                 htmlItems.push(`<div class="item" style="background-image: url('images/${item}.png');"></div>`);
             }
             rouletteDiv.innerHTML = htmlItems.join('');
+            console.log('Текущий transform:', rouletteDiv.style.transform);
+        }
+
+        function spin(item, prize) {
+            console.log(`Прокрутка, результат: ${item}, приз: ${prize}`);
+            rouletteDiv.style.animation = 'none';
+            void rouletteDiv.offsetWidth;
+            rouletteDiv.style.transition = 'transform 5s ease-out';
+            rouletteDiv.style.transform = 'translateX(-80%)';
+            playFree.disabled = true;
+            playPaid.disabled = true;
+            setTimeout(() => {
+                largeItem.style.backgroundImage = `url('images/${item}.png')`;
+                largeItem.style.display = 'block';
+                resultDiv.textContent = texts.result.replace('{item}', texts[item]).replace('{prize}', prize);
+                if (item !== 'nothing') {
+                    tg.MainButton.setText(texts.sell);
+                    tg.MainButton.show();
+                } else {
+                    setTimeout(() => {
+                        largeItem.style.display = 'none';
+                        resultDiv.textContent = '';
+                        rouletteDiv.style.transition = 'none';
+                        rouletteDiv.style.transform = 'translateX(0)';
+                        rouletteDiv.style.animation = 'preview-spin 10s linear infinite';
+                        playFree.disabled = false;
+                        playPaid.disabled = false;
+                    }, 2000);
+                }
+            }, 5000);
+        }
+
+        function checkFreeSpin() {
+            console.log('Проверка фриспина');
+            tg.sendData(JSON.stringify({ action: 'check_free' }));
         }
 
         function updateTimer(timeLeft) {
-            if (!timeLeft) {
+            if (!timeLeft && freeSpinAvailable) {
                 playFree.style.display = 'block';
                 playPaid.style.display = 'none';
                 timerDiv.textContent = '';
@@ -282,53 +196,19 @@
             setTimeout(checkFreeSpin, 1000);
         }
 
-        function checkFreeSpin() {
-            console.log('Checking free spin');
-            tg.sendData(JSON.stringify({ action: 'check_free' }));
-        }
-
-        function spin(item, prize) {
-            console.log(`Spinning, result: ${item}, prize: {prize}`);
-            rouletteDiv.style.animation = 'none';
-            void rouletteDiv.offsetWidth; // Trigger reflow
-            rouletteDiv.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
-            rouletteDiv.style.transform = 'translateX(-80%)';
-            setTimeout(() => {
-                largeItem.style.backgroundImage = `url('images/${item}.png')`;
-                largeItem.style.display = 'block';
-                resultDiv.textContent = texts.result.replace('{item}', texts[item]).replace('{prize}', prize);
-                if (item !== 'nothing') {
-                    tg.MainButton.setText(texts.sell);
-                    tg.MainButton.show();
-                }
-                playFree.style.display = 'none';
-                playPaid.style.display = 'none';
-            }, 5000);
-        }
-
-        playFree.addEventListener('click', () => {
-            console.log('Free spin clicked');
-            tg.sendData(JSON.stringify({ action: 'spin', paid: false }));
-        });
-
-        playPaid.addEventListener('click', () => {
-            console.log('Paid spin clicked');
-            tg.showPopup({
-                title: 'Confirm Payment',
-                message: 'Pay 25 ⭐ for a spin?',
-                buttons: [
-                    { id: 'confirm', type: 'ok', text: 'Confirm' },
-                    { type: 'cancel' }
-                ]
-            }, buttonId => {
-                if (buttonId === 'confirm') {
-                    tg.sendData(JSON.stringify({ action: 'spin', paid: true }));
-                }
-            });
+        tg.onEvent('webAppData', data => {
+            console.log('Получены данные WebApp:', data);
+            const parsed = JSON.parse(data);
+            if (parsed.action === 'check_free') {
+                freeSpinAvailable = parsed.free_available;
+                updateTimer(parsed.time_left ? new Date().getTime() + parsed.time_left.split(':').reduce((acc, t, i) => acc + t * [3600, 60, 1][i] * 1000, 0) - new Date().getTime() : 0);
+            } else if (parsed.action === 'spin') {
+                spin(parsed.item, parsed.prize);
+            }
         });
 
         tg.onEvent('mainButtonClicked', () => {
-            console.log('Main button clicked');
+            console.log('Клик по главной кнопке');
             const item = largeItem.style.backgroundImage.match(/images\/(.+)\.png/)[1];
             tg.sendData(JSON.stringify({ action: 'sell', item }));
             tg.MainButton.hide();
@@ -337,11 +217,47 @@
             rouletteDiv.style.transition = 'none';
             rouletteDiv.style.transform = 'translateX(0)';
             rouletteDiv.style.animation = 'preview-spin 10s linear infinite';
+            playFree.disabled = false;
+            playPaid.disabled = false;
         });
 
-        tg.ready();
+        playFree.addEventListener('click', () => {
+            console.log('Клик по бесплатному спину');
+            tg.sendData(JSON.stringify({ action: 'spin', paid: false }));
+        });
+
+        playPaid.addEventListener('click', () => {
+            console.log('Клик по платному спину');
+            tg.showPopup({
+                title: texts.title,
+                message: texts.paid,
+                buttons: [
+                    { id: 'confirm', type: 'ok', text: texts.confirm },
+                    { type: 'cancel' }
+                ]
+            }, buttonId => {
+                console.log('Попап платного спина, выбор:', buttonId);
+                if (buttonId === 'confirm') {
+                    console.log('Отправка инвойса');
+                    tg.sendInvoice({
+                        title: 'Платный спин',
+                        description: 'Прокрутка рулетки за 25 звёзд',
+                        payload: JSON.stringify({ action: 'spin', paid: true }),
+                        provider_token: 'YOUR_PROVIDER_TOKEN', // Замени на токен от @BotFather
+                        currency: 'XTR',
+                        prices: [{ label: 'Спин', amount: 25 }],
+                        start_parameter: 'spin-paid'
+                    });
+                }
+            });
+        });
+
+        if (agree) {
+            tg.sendData(JSON.stringify({ action: 'agree' }));
+        }
+
+        initPreview();
         checkFreeSpin();
-        checkAgreement();
     </script>
 </body>
 </html>
