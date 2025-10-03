@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Рулетка</title>
+    <meta name="description" content="DarkSlot Roulette Web App - Authorized use only">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
-            background: linear-gradient(to bottom, #000000, #1a1a1a);
+            background: url('images/background.png') repeat;
+            background-size: 100px 100px;
             color: #ffd700;
             display: flex;
             justify-content: center;
@@ -94,7 +96,9 @@
             height: 80px;
             background-size: contain;
             background-repeat: no-repeat;
+            background-position: center;
             margin: 10px;
+            background-color: transparent;
         }
         button {
             padding: 12px 24px;
@@ -121,11 +125,18 @@
             width: 200px;
             height: 200px;
             background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
             margin: 20px auto;
+        }
+        #timer {
+            font-size: 16px;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
+    <!-- DarkSlot Roulette Web App - Unauthorized copying prohibited -->
     <div class="overlay" id="agreement-overlay">
         <div class="agreement-box">
             <label>
@@ -143,14 +154,15 @@
         <h1>Рулетка</h1>
         <div id="roulette"></div>
         <div id="large-item" style="display: none;"></div>
-        <button id="play">ИГРАТЬ (БЕСПЛАТНО)</button>
+        <button id="play-free" style="display: none;">ПРОКРУТИТЬ БЕСПЛАТНО</button>
+        <button id="play-paid">ПРОКРУТИТЬ ЗА 25 ЗВЁЗД</button>
+        <div id="timer"></div>
         <div id="result"></div>
     </div>
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Получить lang из URL
         const urlParams = new URLSearchParams(window.location.search);
         const lang = urlParams.get('lang') || 'ru';
         const texts = {
@@ -159,28 +171,34 @@
                 terms: 'Условия пользования',
                 privacy: 'Политика конфиденциальности',
                 confirm: 'Подтвердить',
-                play: 'ИГРАТЬ',
+                play: 'ПРОКРУТИТЬ',
                 sell: 'ПРОДАТЬ',
                 result: 'Выпало: {item} ({prize} звезд)',
-                nothing: 'пустышка (0 звезд)',
-                bear: 'мишка (15 звезд)',
-                rose: 'роза (25 звезд)',
-                rocket: 'ракета (50 звезд)',
-                diamond: 'алмаз (100 звезд)'
+                nothing: 'пустышка',
+                bear: 'мишка',
+                rose: 'роза',
+                rocket: 'ракета',
+                diamond: 'алмаз',
+                free: 'БЕСПЛАТНО',
+                paid: 'ЗА 25 ЗВЁЗД',
+                timer: 'До фриспина: {time}'
             },
             en: {
                 title: 'Roulette',
                 terms: 'Terms of Use',
                 privacy: 'Privacy Policy',
                 confirm: 'Confirm',
-                play: 'PLAY',
+                play: 'SPIN',
                 sell: 'SELL',
                 result: 'Result: {item} ({prize} stars)',
-                nothing: 'nothing (0 stars)',
-                bear: 'bear (15 stars)',
-                rose: 'rose (25 stars)',
-                rocket: 'rocket (50 stars)',
-                diamond: 'diamond (100 stars)'
+                nothing: 'nothing',
+                bear: 'bear',
+                rose: 'rose',
+                rocket: 'rocket',
+                diamond: 'diamond',
+                free: 'FREE',
+                paid: 'FOR 25 STARS',
+                timer: 'Next free spin in: {time}'
             }
         }[lang];
 
@@ -188,29 +206,30 @@
         document.getElementById('terms-text').textContent = texts.terms;
         document.getElementById('privacy-text').textContent = texts.privacy;
         document.getElementById('confirm-button').textContent = texts.confirm;
-        document.getElementById('play').textContent = `${texts.play} (БЕСПЛАТНО)`;
+        document.getElementById('play-free').textContent = `${texts.play} ${texts.free}`;
+        document.getElementById('play-paid').textContent = `${texts.play} ${texts.paid}`;
 
         const termsCheck = document.getElementById('terms-check');
         const privacyCheck = document.getElementById('privacy-check');
         const confirmButton = document.getElementById('confirm-button');
         const agreementOverlay = document.getElementById('agreement-overlay');
         const rouletteContainer = document.getElementById('roulette-container');
-        const playButton = document.getElementById('play');
+        const playFree = document.getElementById('play-free');
+        const playPaid = document.getElementById('play-paid');
         const resultDiv = document.getElementById('result');
         const largeItem = document.getElementById('large-item');
         const rouletteDiv = document.getElementById('roulette');
+        const timerDiv = document.getElementById('timer');
 
-        // Кликабельный текст условий
-        document.getElementById('terms-text').addEventListener('click', (e) => {
+        document.getElementById('terms-text').addEventListener('click', e => {
             e.preventDefault();
             tg.openTelegramLink('tg://resolve?domain=your_bot_username&start=termsofuse');
         });
-        document.getElementById('privacy-text').addEventListener('click', (e) => {
+        document.getElementById('privacy-text').addEventListener('click', e => {
             e.preventDefault();
             tg.openTelegramLink('tg://resolve?domain=your_bot_username&start=privacypolicy');
         });
 
-        // Активация кнопки "Подтвердить"
         function checkAgreement() {
             console.log('checkAgreement called', { terms: termsCheck.checked, privacy: privacyCheck.checked });
             confirmButton.disabled = !(termsCheck.checked && privacyCheck.checked);
@@ -218,71 +237,113 @@
         termsCheck.addEventListener('change', checkAgreement);
         privacyCheck.addEventListener('change', checkAgreement);
 
-        // Подтверждение согласия
         confirmButton.addEventListener('click', () => {
-            console.log('Confirm button clicked');
+            console.log('Confirm clicked');
             agreementOverlay.style.display = 'none';
             rouletteContainer.style.display = 'block';
             initPreview();
-            tg.sendData(JSON.stringify({action: 'agree'}));
+            tg.sendData(JSON.stringify({ action: 'agree' }));
         });
 
-        // Превью рулетки
         function initPreview() {
+            console.log('Initializing preview');
             const items = ['nothing', 'bear', 'rose', 'rocket', 'diamond'];
             let htmlItems = [];
             for (let i = 0; i < 20; i++) {
                 const item = items[Math.floor(Math.random() * items.length)];
+                console.log(`Adding item: images/${item}.png`);
                 htmlItems.push(`<div class="item" style="background-image: url('images/${item}.png');"></div>`);
             }
             rouletteDiv.innerHTML = htmlItems.join('');
         }
 
-        // Анимация спина
-        playButton.addEventListener('click', () => {
-            playButton.disabled = true;
+        function updateTimer(timeLeft) {
+            if (!timeLeft) {
+                playFree.style.display = 'block';
+                playPaid.style.display = 'none';
+                timerDiv.textContent = '';
+                return;
+            }
+            const seconds = Math
+
+.floor(timeLeft / 1000);
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            timerDiv.textContent = texts.timer.replace('{time}', `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+            playFree.style.display = 'none';
+            playPaid.style.display = 'block';
+            setTimeout(checkFreeSpin, 1000);
+        }
+
+        function checkFreeSpin() {
+            console.log('Checking free spin');
+            tg.sendData(JSON.stringify({ action: 'check_free' }));
+            tg.onEvent('mainButtonClicked', () => {
+                const data = JSON.parse(tg.MainButton.text);
+                if (data.free_available) {
+                    spin(false);
+                } else {
+                    updateTimer(data.time_left);
+                }
+            });
+        }
+
+        playFree.addEventListener('click', () => {
+            spin(false);
+        });
+
+        playPaid.addEventListener('click Labour () => {
+            tg.openInvoice('YOUR_INVOICE_LINK', status => {
+                if (status === 'paid') {
+                    spin(true);
+                } else {
+                    resultDiv.textContent = lang === 'ru' ? 'Платёж отменён' : 'Payment cancelled';
+                }
+            });
+        });
+
+        function spin(paid) {
+            console.log(`Spinning, paid: ${paid}`);
+            playFree.disabled = true;
+            playPaid.disabled = true;
             rouletteDiv.style.animation = 'none';
             setTimeout(() => {
                 rouletteDiv.style.transition = 'transform 5s ease-in-out';
                 rouletteDiv.style.transform = 'translateX(-80%)';
             }, 100);
-
             setTimeout(() => {
                 const items = ['nothing', 'bear', 'rose', 'rocket', 'diamond'];
                 const resultItem = items[Math.floor(Math.random() * items.length)];
-                const prize = {nothing: 0, bear: 15, rose: 25, rocket: 50, diamond: 100}[resultItem];
+                const prize = { nothing: 0, bear: 15, rose: 25, rocket: 50, diamond: 100 }[resultItem];
                 largeItem.style.backgroundImage = `url('images/${resultItem}.png')`;
                 largeItem.style.display = 'block';
                 resultDiv.textContent = texts.result.replace('{item}', texts[resultItem]).replace('{prize}', prize);
-                playButton.textContent = texts.sell;
-                playButton.disabled = false;
-                playButton.onclick = () => {
-                    tg.sendData(JSON.stringify({action: 'sell', item: resultItem}));
+                playFree.style.display = 'none';
+                playPaid.style.display = 'none';
+                const sellButton = document.createElement('button');
+                sellButton.textContent = texts.sell;
+                sellButton.style.cssText = playFree.style.cssText;
+                sellButton.addEventListener('click', () => {
+                    tg.sendData(JSON.stringify({ action: 'sell', item: resultItem }));
                     resetRoulette();
-                };
-                tg.sendData(JSON.stringify({action: 'spin', paid: false}));
+                });
+                rouletteContainer.insertBefore(sellButton, playPaid);
+                tg.sendData(JSON.stringify({ action: 'spin', paid: paid }));
             }, 5100);
-        });
+        }
 
-        // Сброс рулетки
         function resetRoulette() {
             largeItem.style.display = 'none';
             resultDiv.textContent = '';
             initPreview();
-            playButton.textContent = `${texts.play} (25 ЗВЁЗД)`;
-            playButton.disabled = false;
-            playButton.onclick = () => {
-                tg.openInvoice('YOUR_INVOICE_LINK', (status) => {
-                    if (status === 'paid') {
-                        tg.sendData(JSON.stringify({action: 'spin', paid: true}));
-                    } else {
-                        resultDiv.textContent = lang === 'ru' ? 'Платёж отменён' : 'Payment cancelled';
-                    }
-                });
-            };
+            const sellButton = rouletteContainer.querySelector('button:not(#play-free):not(#play-paid)');
+            if (sellButton) sellButton.remove();
+            checkFreeSpin();
         }
 
         initPreview();
+        checkFreeSpin();
     </script>
 </body>
 </html>
