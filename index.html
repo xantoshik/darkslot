@@ -11,7 +11,7 @@
             padding: 0;
             font-family: Arial, sans-serif;
             background: linear-gradient(to bottom, #000000, #1a1a1a);
-            color: #ffd700;  # Золото
+            color: #ffd700;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -38,13 +38,14 @@
             max-width: 300px;
         }
         .agreement-box label {
-            display: block;
+            display: flex;
+            align-items: center;
             margin: 10px 0;
-            cursor: pointer;
         }
         .agreement-text {
             color: #ffd700;
             text-decoration: underline;
+            cursor: pointer;
         }
         .agreement-text:hover {
             color: #fff;
@@ -81,7 +82,7 @@
             border-radius: 10px;
             margin-bottom: 20px;
             white-space: nowrap;
-            animation: preview-spin 10s linear infinite;  # Медленное превью
+            animation: preview-spin 10s linear infinite;
         }
         @keyframes preview-spin {
             from { transform: translateX(0); }
@@ -187,7 +188,7 @@
         document.getElementById('terms-text').textContent = texts.terms;
         document.getElementById('privacy-text').textContent = texts.privacy;
         document.getElementById('confirm-button').textContent = texts.confirm;
-        document.getElementById('play').textContent = texts.play + ' (БЕСПЛАТНО)';
+        document.getElementById('play').textContent = `${texts.play} (БЕСПЛАТНО)`;
 
         const termsCheck = document.getElementById('terms-check');
         const privacyCheck = document.getElementById('privacy-check');
@@ -200,30 +201,35 @@
         const rouletteDiv = document.getElementById('roulette');
 
         // Кликабельный текст условий
-        document.getElementById('terms-text').addEventListener('click', () => {
+        document.getElementById('terms-text').addEventListener('click', (e) => {
+            e.preventDefault();
             tg.openTelegramLink('tg://resolve?domain=your_bot_username&start=termsofuse');
         });
-        document.getElementById('privacy-text').addEventListener('click', () => {
+        document.getElementById('privacy-text').addEventListener('click', (e) => {
+            e.preventDefault();
             tg.openTelegramLink('tg://resolve?domain=your_bot_username&start=privacypolicy');
         });
 
         // Активация кнопки "Подтвердить"
-        const checkAgreement = () => {
+        function checkAgreement() {
+            console.log('checkAgreement called', { terms: termsCheck.checked, privacy: privacyCheck.checked });
             confirmButton.disabled = !(termsCheck.checked && privacyCheck.checked);
-        };
+        }
         termsCheck.addEventListener('change', checkAgreement);
         privacyCheck.addEventListener('change', checkAgreement);
 
         // Подтверждение согласия
         confirmButton.addEventListener('click', () => {
+            console.log('Confirm button clicked');
             agreementOverlay.style.display = 'none';
             rouletteContainer.style.display = 'block';
             initPreview();
+            tg.sendData(JSON.stringify({action: 'agree'}));
         });
 
-        // Превью рулетки (медленное крутение)
+        // Превью рулетки
         function initPreview() {
-            const items = ['dummy', 'bear', 'rose', 'rocket', 'diamond'];
+            const items = ['nothing', 'bear', 'rose', 'rocket', 'diamond'];
             let htmlItems = [];
             for (let i = 0; i < 20; i++) {
                 const item = items[Math.floor(Math.random() * items.length)];
@@ -235,24 +241,26 @@
         // Анимация спина
         playButton.addEventListener('click', () => {
             playButton.disabled = true;
-            rouletteDiv.style.animation = 'none';  # Остановить превью
+            rouletteDiv.style.animation = 'none';
             setTimeout(() => {
                 rouletteDiv.style.transition = 'transform 5s ease-in-out';
-                rouletteDiv.style.transform = 'translateX(-80%)';  # Скольжение
+                rouletteDiv.style.transform = 'translateX(-80%)';
             }, 100);
 
             setTimeout(() => {
-                const resultItem = items[Math.floor(Math.random() * items.length)];  # Рандом (точный в боте)
-                const prize = {dummy: 0, bear: 15, rose: 25, rocket: 50, diamond: 100}[resultItem];
+                const items = ['nothing', 'bear', 'rose', 'rocket', 'diamond'];
+                const resultItem = items[Math.floor(Math.random() * items.length)];
+                const prize = {nothing: 0, bear: 15, rose: 25, rocket: 50, diamond: 100}[resultItem];
                 largeItem.style.backgroundImage = `url('images/${resultItem}.png')`;
                 largeItem.style.display = 'block';
                 resultDiv.textContent = texts.result.replace('{item}', texts[resultItem]).replace('{prize}', prize);
                 playButton.textContent = texts.sell;
+                playButton.disabled = false;
                 playButton.onclick = () => {
                     tg.sendData(JSON.stringify({action: 'sell', item: resultItem}));
                     resetRoulette();
                 };
-                playButton.disabled = false;
+                tg.sendData(JSON.stringify({action: 'spin', paid: false}));
             }, 5100);
         });
 
@@ -261,13 +269,20 @@
             largeItem.style.display = 'none';
             resultDiv.textContent = '';
             initPreview();
-            playButton.textContent = texts.play + ' (25 ЗВЁЗД)';  # После фри - платный
+            playButton.textContent = `${texts.play} (25 ЗВЁЗД)`;
+            playButton.disabled = false;
             playButton.onclick = () => {
-                tg.sendData(JSON.stringify({action: 'spin', paid: true}));
+                tg.openInvoice('YOUR_INVOICE_LINK', (status) => {
+                    if (status === 'paid') {
+                        tg.sendData(JSON.stringify({action: 'spin', paid: true}));
+                    } else {
+                        resultDiv.textContent = lang === 'ru' ? 'Платёж отменён' : 'Payment cancelled';
+                    }
+                });
             };
         }
 
-        initPreview();  # Превью при загрузке, но скрыто до согласия
+        initPreview();
     </script>
 </body>
 </html>
